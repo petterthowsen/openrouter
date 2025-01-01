@@ -47,7 +47,7 @@ module OpenRouter
 
     # Represents a response from 
     struct Response
-        getter id : String
+        getter id : String?
         getter created : Int32
         getter model : String
 
@@ -75,7 +75,7 @@ module OpenRouter
         end
 
         def initialize(json : JSON::Any)
-            @id = json["id"].as_s
+            @id = json["id"]? ? json["id"].as_s : nil
             @created = json["created"].as_i
             @model = json["model"].as_s
             

@@ -1,7 +1,10 @@
 require "./spec_helper"
 require "./../src/openrouter"
 
+API_KEY = ""
+
 describe OpenRouter do
+
   it "can create client" do
     client = OpenRouter::Client.new ""
     client.should be_a(OpenRouter::Client)
@@ -16,7 +19,7 @@ describe OpenRouter do
   end
 
   it "should return response from a prompt", focus: false do
-    client = OpenRouter::Client.new "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"
+    client = OpenRouter::Client.new API_KEY
     response = client.complete("Hello, how are you?", "mistralai/mistral-7b-instruct:free")
 
     puts response.inspect
@@ -36,16 +39,18 @@ describe OpenRouter do
   end
 
   it "should return a message from a message completion", focus: false do
-    client = OpenRouter::Client.new "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"
+    client = OpenRouter::Client.new API_KEY
 
     request = OpenRouter::CompletionRequest.new(
-      model: "mistralai/mistral-7b-instruct:free",
+      model: "meta-llama/llama-3.2-11b-vision-instruct:free",
       messages: [
         OpenRouter::Message.new(role: OpenRouter::Role::User, content: "If I have 10 apples..."),
         OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "You have 10 apples and... ?"),
         OpenRouter::Message.new(role: OpenRouter::Role::User, content: "I eat half of them. How many do I have left?"),
       ]
     )
+    
+    puts request.to_pretty_json
 
     response = client.complete(request)
 
@@ -55,5 +60,7 @@ describe OpenRouter do
 
     choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
     choice.message.role.should eq(OpenRouter::Role::Assistant)
+
+    puts choice.message.content
   end
 end

@@ -106,7 +106,9 @@ module OpenRouter
         # Even with 200 OK, check if the body contains an error object
         parsed = JSON.parse(response.body)
 
-        if parsed.is_a?(Hash) && parsed["error"]
+        puts parsed.to_pretty_json
+
+        if parsed["error"]?
           handle_api_error(parsed["error"].as_h)
         else
           parsed
@@ -142,7 +144,7 @@ module OpenRouter
     end
 
     private def handle_api_error(error_obj : Hash(String, JSON::Any)) : JSON::Any
-      code = error_obj["code"].as_i32?
+      code = error_obj["code"].as_i
       message = error_obj["message"].as_s || "Unknown API error"
       metadata = error_obj["metadata"]
 
