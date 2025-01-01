@@ -15,10 +15,27 @@ module OpenRouter
             @completion = json["completion_tokens"].as_i
             @total = json["total_tokens"].as_i
         end
+
+        def to_json(io : IO)
+            JSON.build(io) do |json|
+              to_json(json) # Delegate to the JSON::Builder version
+            end
+        end
+
+        def to_json(json : JSON::Builder)
+            json.object do
+                json.field "prompt", @prompt
+                json.field "completion", @completion
+                json.field "total", @total
+            end
+        end
     end
 
     abstract struct Choice
         getter finish_reason : String?
+        abstract def initialize(json : JSON::Any)
+        abstract def to_json(io : IO)
+        abstract def to_json(json : JSON::Builder)
     end
 
     struct NonChatChoice < Choice
@@ -26,6 +43,18 @@ module OpenRouter
 
         def initialize(json : JSON::Any)
             @text = json["text"].as_s
+        end
+
+        def to_json(io : IO)
+            JSON.build(io) do |json|
+              to_json(json) # Delegate to the JSON::Builder version
+            end
+        end
+
+        def to_json(json : JSON::Builder)
+            json.object do
+                json.field "text", @text
+            end
         end
     end
 
@@ -35,6 +64,18 @@ module OpenRouter
         def initialize(json : JSON::Any)
             @message = Message.from_json(json["message"])
         end
+
+        def to_json(io : IO)
+            JSON.build(io) do |json|
+              to_json(json) # Delegate to the JSON::Builder version
+            end
+        end
+
+        def to_json(json : JSON::Builder)
+            json.object do
+                json.field "message", @message
+            end
+        end
     end
 
     struct StreamingChoice < Choice
@@ -42,6 +83,18 @@ module OpenRouter
 
         def initialize(json : JSON::Any)
             @delta = Message.from_json(json["delta"])
+        end
+
+        def to_json(io : IO)
+            JSON.build(io) do |json|
+              to_json(json) # Delegate to the JSON::Builder version
+            end
+        end
+
+        def to_json(json : JSON::Builder)
+            json.object do
+                json.field "delta", @delta
+            end
         end
     end
 

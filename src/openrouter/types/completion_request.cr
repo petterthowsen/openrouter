@@ -74,14 +74,20 @@ module OpenRouter
         # See "Provider Routing" section: openrouter.ai/docs/provider-routing
         property provider : String?
         
-        def initialize(prompt : String, model : String? = nil)
+        def initialize(prompt : String, model : String? = nil, tools : Array(Tool) = [] of Tool)
             @prompt = prompt
             @model = model
+            @tools = tools
         end
 
-        def initialize(messages : Array(Message), model : String? = nil)
+        def initialize(messages : Array(Message), model : String? = nil, tools : Array(Tool) = [] of Tool)
             @messages = messages
             @model = model
+            @tools = tools
+        end
+
+        def add_tool(tool : Tool)
+            @tools << tool
         end
 
         def to_json(io : IO)

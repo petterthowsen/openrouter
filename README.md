@@ -30,13 +30,13 @@ response = client.complete("Hello, how are you?", "mistralai/mistral-7b-instruct
 
 # or use the CompletionRequest class to construct a more complex request with multiple messages:
 request = OpenRouter::CompletionRequest.new(
-      model: "mistralai/mistral-7b-instruct:free",
-      messages: [
-        OpenRouter::Message.new(role: OpenRouter::Role::User, content: "If I have 10 apples..."),
-        OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "You have 10 apples and... ?"),
-        OpenRouter::Message.new(role: OpenRouter::Role::User, content: "I eat half of them. How many do I have left?"),
-      ]
-    )
+  model: "mistralai/mistral-7b-instruct:free",
+  messages: [
+    OpenRouter::Message.new(role: OpenRouter::Role::User, content: "If I have 10 apples..."),
+    OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "You have 10 apples and... ?"),
+    OpenRouter::Message.new(role: OpenRouter::Role::User, content: "I eat half of them. How many do I have left?"),
+  ]
+)
 
 response = client.complete(request)
 

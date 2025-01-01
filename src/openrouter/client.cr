@@ -139,7 +139,7 @@ module OpenRouter
       when 503
         raise ServiceUnavailableError.new(error_message)
       else
-        raise ApiError.new(error_message)
+        raise error_message
       end
     end
 
