@@ -45,11 +45,13 @@ module OpenRouter
         end
 
         # Get the content, or in case of a multi-modal message, the content of the first part.
+        # Get the content, or in case of a multi-modal message, the content of the first part.
         def content_string : String
-            if multi_modal?
-                @content[0]["content"]
-            else
-                @content
+            if @content.is_a?(Array(ContentPart))
+                content_array = @content.as(Array(ContentPart))
+                content_array[0][:value]
+            else @content.is_a?(String)
+                @content.as(String)
             end
         end
 
