@@ -14,13 +14,34 @@ module OpenRouter
             value = json["value"].as_s
             ToolCallArgument.new(name, value)
         end
+
+        def to_json(io : IO)
+            JSON.build(io) do |json|
+              to_json(json) # Delegate to the JSON::Builder version
+            end
+        end
+
+        def to_json(json : JSON::Builder)
+            json.object do
+                json.field "name", @name
+                json.field "value", @value
+            end
+        end
     end
 
     struct ToolCall
         getter id : String
-        getter type : String
+        getter type : String = "function"
         getter name : String
         getter arguments : Array(ToolCallArgument) = [] of ToolCallArgument
+
+        def initialize(
+            @id : String,
+            @name : String,
+            @arguments : Array(ToolCallArgument)    = [] of ToolCallArgument,
+            @type : String = "function"
+        )
+        end
 
         # tool calls look like this:
         # "tool_calls": [
@@ -78,19 +99,21 @@ module OpenRouter
             json.object do
                 json.field "id", @id
                 json.field "type", @type
+                json.field "name", @name
+
                 json.field "function" do
                     json.object do
                         json.field "name", @name
-                        json.field "arguments" do
-                            json.array do
-                                @arguments.each do |argument|
-                                    json.object do
-                                        json.field "name", argument.name
-                                        json.field "value", argument.value
-                                    end
+                        
+                        args = JSON.build do |js|
+                            js.object do
+                                @arguments.each do |arg|
+                                    js.field arg.name, arg.value
                                 end
                             end
                         end
+
+                        json.field "arguments", args.to_s
                     end
                 end
             end

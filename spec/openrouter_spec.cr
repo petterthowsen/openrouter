@@ -1,7 +1,7 @@
 require "./spec_helper"
 require "./../src/openrouter"
 
-API_KEY = "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"
+API_KEY = "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"
 
 describe OpenRouter do
     it "can create client" do
@@ -63,7 +63,7 @@ describe OpenRouter do
         puts choice.message.content
     end
 
-    it "should call tool", focus: true do
+    it "should call tool", focus: false do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
@@ -110,5 +110,142 @@ describe OpenRouter do
         choice.message.role.should eq(OpenRouter::Role::Assistant)
         
         choice.message.tool_calls.should be_a(Array(OpenRouter::ToolCall))
+
+        tool_calls = choice.message.tool_calls.not_nil!
+        tool_call = tool_calls[0]
+        tool_call.name.should eq("get_weather")
+
+        tool_call.arguments.should be_a(Array(OpenRouter::ToolCallArgument))
+
+        arguments = tool_call.arguments.not_nil!
+        argument = arguments[0]
+        argument.name.should eq("location")
+        argument.value.should eq("Tokyo")
+    end
+
+    it "should present tool call result", focus: false do
+        client = OpenRouter::Client.new API_KEY
+
+        request = OpenRouter::CompletionRequest.new(
+            model: "cohere/command-r-08-2024",
+            tools: [
+                OpenRouter::Tool.new(
+                    name: "get_weather",
+                    description: "Get the weather of a location",
+                    parameters: [
+                        OpenRouter::FunctionParameter.new(
+                            name: "location",
+                            type: "string",
+                            description: "The location to get the weather for. For example 'tokyo' or 'new york'.",
+                            required: true
+                        )
+                    ]
+                )
+            ],
+            messages: [
+                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi!"),
+                OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "Hi, what can I help you with?"),
+                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "What's the weather in Tokyo?"),
+                OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "Let me see...", tool_calls: [
+                    OpenRouter::ToolCall.new(
+                        id: "get_weather_9pw1qnYScqvGrCH58HWCvFH6",
+                        name: "get_weather",
+                        arguments: [
+                            OpenRouter::ToolCallArgument.new(
+                                name: "location",
+                                value: "Tokyo"
+                            )
+                        ]
+                    )
+                ]),
+                OpenRouter::Message.new(OpenRouter::ToolCall.new(
+                    id: "get_weather_9pw1qnYScqvGrCH58HWCvFH6",
+                    name: "get_weather",
+                    arguments: [
+                        OpenRouter::ToolCallArgument.new(
+                            name: "location",
+                            value: "Tokyo"
+                        ),
+                        OpenRouter::ToolCallArgument.new(
+                            name: "temperature",
+                            value: "22"
+                        ),
+                        OpenRouter::ToolCallArgument.new(
+                            name: "unit",
+                            value: "Celcius"
+                        )
+                    ]
+                )),
+            ],
+        )
+        
+        puts "sending request:\n"
+        puts request.to_pretty_json
+        
+        begin
+            response = client.complete(request)
+        rescue e
+            puts e.inspect + "\n"
+            next
+        end
+
+        puts "response:\n"
+        puts response.to_pretty_json
+
+        response.should be_a(OpenRouter::Response)
+
+        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+
+        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
+        choice.message.role.should eq(OpenRouter::Role::Assistant)
+    end
+
+    it "should describe image", focus: false do
+        client = OpenRouter::Client.new API_KEY
+
+        # load image from file and base64 encode it
+        # Open the file, read its contents, and encode it to Base64
+        # Open the file and read its contents
+        image_path = "./spec/clock_logo.jpg"
+
+        # Implicit close with `open` and a block:
+        file = File.read image_path
+        base64_image_url = "data:image/jpg;base64,#{Base64.encode file}"
+
+        # google/gemini-flash-1.5-exp
+        # meta-llama/llama-3.2-11b-vision-instruct:free
+
+        request = OpenRouter::CompletionRequest.new(
+            model: "meta-llama/llama-3.2-11b-vision-instruct:free",
+            messages: [
+                OpenRouter::Message.new(role: OpenRouter::Role::User,
+                    content: [
+                        OpenRouter::ContentPart.new(type: "text", value: "What's in this image?"),
+                        OpenRouter::ContentPart.new(type: "image_url", value: base64_image_url),
+                    ]
+                ),
+            ]
+        )
+
+        puts "sending request:\n"
+        puts request.to_pretty_json
+
+        begin
+            response = client.complete(request)
+        rescue e
+            puts e.inspect + "\n"
+            next
+        end
+
+        puts "response:\n"
+        puts response.to_pretty_json
+
+        response.should be_a(OpenRouter::Response)
+
+        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+
+        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
+        choice.message.role.should eq(OpenRouter::Role::Assistant)
+
     end
 end

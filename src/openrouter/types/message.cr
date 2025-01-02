@@ -1,17 +1,25 @@
 require "./tool_call"
 
 module OpenRouter
+
+    # The role type of a Message
     enum Role
         User
         Assistant
         System
         Tool
     end
+    
+    # One content part in a multi-modal message.
+    alias ContentPart = NamedTuple(type: String, value: String)
+
+    # The content type of a Message
+    alias Content = String | Array(ContentPart)
 
     struct Message
         # Common fields
         property role : Role? = nil
-        property content : String
+        property content : Content
 
         # Optional fields for specific roles
         property tool_call_id : String? # Only for `tool` role
@@ -20,7 +28,7 @@ module OpenRouter
         property tool_calls : Array(ToolCall)?
 
         # Initialize for user/assistant/system messages
-        def initialize(role : Role, content : String, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil)
+        def initialize(role : Role, content : Content, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil)
             @role = role
             @content = content
             @name = name
@@ -36,6 +44,58 @@ module OpenRouter
             end
         end
 
+        # Get the content, or in case of a multi-modal message, the content of the first part.
+        def content_string : String
+            if multi_modal?
+                @content[0]["content"]
+            else
+                @content
+            end
+        end
+
+        # Create a tool result message.
+        # 
+        # Role will be Role::Tool
+        # @name will be set to tool_call.name
+        # @tool_call_id will be set to tool_call.id
+        # @content will be set to serializd string of tool_call.arguments.to_json()
+        def initialize(tool_call : ToolCall)
+            @role = Role::Tool
+            @tool_call_id = tool_call.id
+            @name = tool_call.name
+
+            # pack arguments to a json object
+            args_json = JSON.build do |json|
+                json.object do
+                    tool_call.arguments.each do |arg|
+                        json.field arg.name, arg.value
+                    end
+                end
+            end
+
+            @content = args_json.to_s
+        end
+
+        def add_tool_call(tool_call : ToolCall)
+            @tool_calls ||= [] of ToolCall
+            @tool_calls << tool_call
+        end
+
+        def add_tool_call(
+            name : String,
+            arguments : Array(ToolCallArgument) = [] of ToolCallArgument,
+            tool_call_type : String = "function",
+            tool_call_id : String? = nil
+        )
+            tool_call = ToolCall.new(tool_call_id, name, arguments, tool_call_type)
+            add_tool_call(tool_call)
+        end
+
+        # Check if content is an Array
+        def multi_modal? : Bool
+            @content.is_a?(Array(ContentPart))
+        end
+
         def self.from_json(json : JSON::Any)
             if json.as_h.has_key? "role"
                role = Role.parse(json["role"].as_s)
@@ -44,7 +104,40 @@ module OpenRouter
             end
 
             if json.as_h.has_key? "content"
-                content = json["content"].as_s
+                # content can be a string, I.E "I am a large language model", or an array of objects, for example:
+                # [
+                #   {
+                #     "type": "text",
+                #     "content": "What's in this image?"
+                #   },
+                #   {
+                #     "type": "image_url",
+                #     "image_url": {
+                #       "url": "http://..." 
+                #     }
+                #   }
+                # ]
+                
+                # is it a string?
+                if json["content"].is_a?(String)
+                    content = json["content"].as_s
+                else
+                    # it's an array of objects
+                    content = json["content"].as_a.map do |content_part_json|
+                        type = content_part_json["type"].as_s
+                        # if type is image_url, we look for image_url and use that as content
+                        if type == "image_url"
+                            type = "image_url"
+                            value = content_part_json["image_url"].as_s
+                        else
+                            value = "unknown"
+                        end
+                        {
+                            type: type,
+                            value: value
+                        }
+                    end
+                end
             else
                 raise "Missing content field in message"
             end
@@ -95,18 +188,49 @@ module OpenRouter
             # Build the JSON object directly
             json.object do
                 json.field("role", @role.to_s.downcase)
-                json.field("content", @content)
 
-                # Include optional fields
-                json.field("tool_call_id", @tool_call_id) if @tool_call_id
-                json.field("name", @name) if @name
-
-                 # Serialize tool_calls if not nil
-                # Serialize tool_calls if not nil
-                if @tool_calls
-                    json.field("tool_calls") do
+                json.field "content", do
+                    if content.is_a?(String)
+                        json.field("content", @content.as(String))
+                    else
                         json.array do
-                            @tool_calls.not_nil!.each { |tool_call| tool_call.to_json(json) }
+                            @content.as(Array(ContentPart)).each do |content_part|
+                                json.object do
+                                    type = content_part[:type]
+                                    value = content_part[:value]
+
+                                    if type == "image_url"
+                                        json.field("type", type)
+                                        json.field "image_url" do
+                                            json.object do
+                                                json.field("url", value)
+                                            end
+                                        end
+                                    else
+                                        json.field("type", type)
+                                        json.field(type, value)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                # is type tool?
+                if @role == Role::Tool
+                    json.field("name", @name)
+                    json.field("tool_call_id", @tool_call_id)
+                else
+                    # Include optional fields
+                    json.field("tool_call_id", @tool_call_id) if @tool_call_id
+                    json.field("name", @name) if @name
+
+                    # Serialize tool_calls if not nil
+                    if @tool_calls
+                        json.field("tool_calls") do
+                            json.array do
+                                @tool_calls.not_nil!.each { |tool_call| tool_call.to_json(json) }
+                            end
                         end
                     end
                 end
