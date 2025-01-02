@@ -2,6 +2,9 @@
 
 HTTP Client for the OpenRouter API (https://openrouter.ai)
 
+## Documentation
+docs hosted at [crystaldoc.info](https://crystaldoc.info/github/petterthowsen/openrouter/v0.3.0/index.html)
+
 ## Support / Features
 
 - text completion
