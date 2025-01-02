@@ -42,7 +42,7 @@ describe OpenRouter do
         choice.text.should be_a(String)
     end
 
-    it "should return a message from a message completion", focus: false do
+    it "should return a message from a message completion", focus: true do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
@@ -67,6 +67,9 @@ describe OpenRouter do
         message.role.should eq(OpenRouter::Role::Assistant)
         
         message.content.should be_a(String)
+
+        message.length.should be_a(Int32)
+        message.length.should be > 0
     end
 
     it "should call tool", focus: false do
@@ -206,7 +209,7 @@ describe OpenRouter do
         choice.message.role.should eq(OpenRouter::Role::Assistant)
     end
 
-    it "should describe image", focus: true do
+    it "should describe image", focus: false do
         client = OpenRouter::Client.new API_KEY
 
         # load image from file and base64 encode it

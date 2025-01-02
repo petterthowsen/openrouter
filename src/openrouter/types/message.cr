@@ -53,6 +53,18 @@ module OpenRouter
             end
         end
 
+        def length : Int32
+            if @content.is_a?(Array(ContentPart))
+                len = 0
+                @content.as(Array(ContentPart)).each do |part|
+                    len += part[:type].size + part[:value].size
+                end
+                len
+            else
+                @content.size
+            end
+        end
+
         # Create a tool result message.
         # 
         # Role will be Role::Tool
