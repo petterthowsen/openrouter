@@ -9,4 +9,4 @@
 /shard.lock
 
 # environment files
-.env
+spec/api_key.txt

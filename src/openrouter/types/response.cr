@@ -58,6 +58,7 @@ module OpenRouter
         end
     end
 
+    # Represents a non-streaming response
     struct NonStreamingChoice < Choice
         getter message : Message
 
@@ -78,6 +79,9 @@ module OpenRouter
         end
     end
 
+    # Represents a streaming response
+    # 
+    # The delta property contains a partial message.
     struct StreamingChoice < Choice
         getter delta : Message
 
@@ -135,7 +139,7 @@ module OpenRouter
             # loop through choices
             # and add them to the choices array
             json["choices"].as_a.each do |choice_json|
-                if choice_json.as_h.has_key? "text" != nil
+                if choice_json.as_h.has_key? "text"
                     @choices << NonChatChoice.new(choice_json)
                 elsif choice_json.as_h.has_key? "message"
                     @choices << NonStreamingChoice.new(choice_json)

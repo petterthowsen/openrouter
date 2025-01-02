@@ -1,10 +1,15 @@
 require "./spec_helper"
 require "./../src/openrouter"
 
-API_KEY = "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"
+
+API_KEY = begin
+    File.read("./spec/api_key.txt")
+rescue e
+    raise "Please create a file called './spec/api_key.txt' containing your OpenRouter API key"
+end
 
 describe OpenRouter do
-    it "can create client" do
+    it "can create client", focus: false do
         client = OpenRouter::Client.new ""
         client.should be_a(OpenRouter::Client)
     end
@@ -58,9 +63,10 @@ describe OpenRouter do
         response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
 
         choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        choice.message.role.should eq(OpenRouter::Role::Assistant)
-
-        puts choice.message.content
+        message : OpenRouter::Message = choice.message
+        message.role.should eq(OpenRouter::Role::Assistant)
+        
+        message.content.should be_a(String)
     end
 
     it "should call tool", focus: false do
@@ -200,7 +206,7 @@ describe OpenRouter do
         choice.message.role.should eq(OpenRouter::Role::Assistant)
     end
 
-    it "should describe image", focus: false do
+    it "should describe image", focus: true do
         client = OpenRouter::Client.new API_KEY
 
         # load image from file and base64 encode it

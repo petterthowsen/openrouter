@@ -119,9 +119,9 @@ module OpenRouter
                 # ]
                 
                 # is it a string?
-                if json["content"].is_a?(String)
+                if json["content"].as_s?
                     content = json["content"].as_s
-                else
+                elsif json["content"].as_a?
                     # it's an array of objects
                     content = json["content"].as_a.map do |content_part_json|
                         type = content_part_json["type"].as_s
@@ -137,6 +137,8 @@ module OpenRouter
                             value: value
                         }
                     end
+                else
+                    raise "Unexpected format for content: Expected String or Array, got #{json["content"].class}"
                 end
             else
                 raise "Missing content field in message"
@@ -161,11 +163,7 @@ module OpenRouter
             #   ]
             
             if json.as_h.has_key? "tool_calls"
-                puts "message has tool calls: #{json["tool_calls"]} \n"
-
                 tool_calls = json["tool_calls"].as_a.map { |tool_call_json| ToolCall.new(tool_call_json) }
-
-                puts "tool calls: #{tool_calls.inspect}"
             end
 
             # tool_call_id
@@ -189,10 +187,10 @@ module OpenRouter
             json.object do
                 json.field("role", @role.to_s.downcase)
 
-                json.field "content", do
-                    if content.is_a?(String)
-                        json.field("content", @content.as(String))
-                    else
+                if content.is_a?(String)
+                    json.field("content", @content)
+                else
+                    json.field "content", do
                         json.array do
                             @content.as(Array(ContentPart)).each do |content_part|
                                 json.object do
@@ -221,9 +219,15 @@ module OpenRouter
                     json.field("name", @name)
                     json.field("tool_call_id", @tool_call_id)
                 else
+
                     # Include optional fields
-                    json.field("tool_call_id", @tool_call_id) if @tool_call_id
-                    json.field("name", @name) if @name
+                    if @tool_call_id
+                        json.field("tool_call_id", @tool_call_id)
+                    end
+
+                    if @name
+                        json.field("name", @name)
+                    end
 
                     # Serialize tool_calls if not nil
                     if @tool_calls

@@ -1,9 +1,17 @@
 module OpenRouter
 
     class CompletionRequest
+
+        # The chat message history
         property messages : Array(Message)?
+
+        # A simple text prompt
         property prompt : String?
 
+        # The model to use.
+        # 
+        # Browse models at openrouter.ai/models,
+        # or use the `get_models` method of the OpenRouter::Client
         property model : String?
 
         #@response_format
@@ -103,8 +111,8 @@ module OpenRouter
                 elsif @messages
                     json.field "messages" do
                         json.array do
-                            @messages.not_nil!.each do |message|
-                                message.to_json(json) # Pass the JSON::Builder to the Message's to_json method
+                            @messages.not_nil!.each_with_index do |message, index|
+                                message.to_json(json)
                             end
                         end
                     end

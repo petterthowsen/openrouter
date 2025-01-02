@@ -61,16 +61,11 @@ module OpenRouter
         
             # Handle `arguments`
             raw_arguments = json["function"]["arguments"]
-            
-            puts "parsing tool_call arguments\n"
-            puts raw_arguments.inspect
 
             if raw_arguments.try &.as_s?
                 arguments_string = raw_arguments.as_s
                 # Parse the JSON string
                 parsed_arguments = JSON.parse(arguments_string)
-            
-                puts "Parsed arguments: #{parsed_arguments.inspect} (class: #{parsed_arguments.class})"
             
                 if arguments_hash = parsed_arguments.as_h?
                     @arguments = arguments_hash.map do |key, value|

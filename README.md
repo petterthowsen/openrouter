@@ -2,6 +2,14 @@
 
 HTTP Client for the OpenRouter API (https://openrouter.ai)
 
+## Support / Features
+
+- text completion
+- chat completion
+- multimodal I.E images
+- tool use
+
+
 ## Installation
 
 1. Add the dependency to your `shard.yml`:
@@ -40,11 +48,24 @@ request = OpenRouter::CompletionRequest.new(
 
 response = client.complete(request)
 
+# you can get the content like this:
+choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
+
+# choice is a OpenRouter::Content
+# which is alias of String | Array(NamedTuple(type, value))
+# if you know it's only one text response, use the utility method:
+text : String = choice.content_string
+puts "AI Responded with: " + text
+
+# otherwise, you can access it like so (I think):
+choice.content[0][:value] # => String
+
 ```
 
 ## Development
 
-Pretty self-explanatory. The main class is the Client in `./src/openrouter/client.cr`.
+The main class is the Client in `./src/openrouter/client.cr`.
+
 It uses the CompletionRequest in `./src/openrouter/types/completion_request.cr` and Response in `./src/openrouter/types/response.cr`.
 
 ## Contributing
