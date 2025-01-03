@@ -38,13 +38,8 @@ module OpenRouter
             if role == Role::Tool && tool_call_id == nil
                 raise "Tool messages must have a tool_call_id"
             end
-
-            if role != Role::Tool && tool_call_id != nil
-                raise "Non-tool messages cannot have a tool_call_id"
-            end
         end
 
-        # Get the content, or in case of a multi-modal message, the content of the first part.
         # Get the content, or in case of a multi-modal message, the content of the first part.
         def content_string : String
             if @content.is_a?(Array(ContentPart))
@@ -52,8 +47,8 @@ module OpenRouter
                 content_array[0][:value]
             elsif @content.is_a?(String)
                 @content.as(String)
-            else @content.nil?
-                nil
+            else
+                ""
             end
         end
 
@@ -155,10 +150,8 @@ module OpenRouter
                             value: value
                         }
                     end
-                elsif json["content"].nil?
-                    content = nil
                 else
-                    raise "Unexpected format for content: Expected String or Array, got #{json["content"].class}"
+                    content = nil
                 end
             else
                 raise "Missing content field in message"
