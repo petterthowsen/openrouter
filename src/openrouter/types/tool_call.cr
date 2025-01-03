@@ -2,16 +2,21 @@ module OpenRouter
 
     struct ToolCallArgument
         getter name : String
-        getter value : String
+        getter value : JSON::Any
 
-        def initialize(name : String, value : String)
+        def initialize(name : String, value : JSON::Any)
             @name = name
             @value = value
         end
 
+        def initialize(name : String, value : String)
+            @name = name
+            @value = JSON::Any.new(value)
+        end
+
         def self.from_json(json : JSON::Any)
             name = json["name"].as_s
-            value = json["value"].as_s
+            value = json["value"]
             ToolCallArgument.new(name, value)
         end
 
@@ -24,7 +29,7 @@ module OpenRouter
         def to_json(json : JSON::Builder)
             json.object do
                 json.field "name", @name
-                json.field "value", @value
+                json.field "value", @value.raw
             end
         end
     end
@@ -69,7 +74,7 @@ module OpenRouter
             
                 if arguments_hash = parsed_arguments.as_h?
                     @arguments = arguments_hash.map do |key, value|
-                        ToolCallArgument.new(key, value.as_s)
+                        ToolCallArgument.new(key, value)
                     end
                 elsif arguments_array = parsed_arguments.as_a?
                     @arguments = arguments_array.map { |arg| ToolCallArgument.from_json(arg) }

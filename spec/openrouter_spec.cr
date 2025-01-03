@@ -132,7 +132,7 @@ describe OpenRouter do
         argument.value.should eq("Tokyo")
     end
 
-    it "should present tool call result", focus: false do
+    it "should present tool call result", focus: true do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
