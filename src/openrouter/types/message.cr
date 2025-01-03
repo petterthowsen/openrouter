@@ -19,7 +19,7 @@ module OpenRouter
     struct Message
         # Common fields
         property role : Role? = nil
-        property content : Content
+        property content : Content?
 
         # Optional fields for specific roles
         property tool_call_id : String? # Only for `tool` role
@@ -28,7 +28,7 @@ module OpenRouter
         property tool_calls : Array(ToolCall)?
 
         # Initialize for user/assistant/system messages
-        def initialize(role : Role, content : Content, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil)
+        def initialize(role : Role, content : Content?, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil)
             @role = role
             @content = content
             @name = name
@@ -50,8 +50,10 @@ module OpenRouter
             if @content.is_a?(Array(ContentPart))
                 content_array = @content.as(Array(ContentPart))
                 content_array[0][:value]
-            else @content.is_a?(String)
+            elsif @content.is_a?(String)
                 @content.as(String)
+            else @content.nil?
+                nil
             end
         end
 
@@ -62,8 +64,10 @@ module OpenRouter
                     len += part[:type].size + part[:value].size
                 end
                 len
+            elsif @content.is_a?(String)
+                @content.as(String).size
             else
-                @content.size
+                0
             end
         end
 
@@ -151,6 +155,8 @@ module OpenRouter
                             value: value
                         }
                     end
+                elsif json["content"].nil?
+                    content = nil
                 else
                     raise "Unexpected format for content: Expected String or Array, got #{json["content"].class}"
                 end

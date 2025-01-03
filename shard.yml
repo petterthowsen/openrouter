@@ -2,7 +2,7 @@ name: openrouter
 description: |
   HTTP Client for the OpenRouter API (https://openrouter.ai)
 
-version: 0.8.0
+version: 0.8.1
 
 authors:
   - Petter Thowsen <petterthowsen@gmail.com>
