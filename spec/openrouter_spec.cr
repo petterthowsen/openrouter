@@ -8,6 +8,8 @@ rescue e
     raise "Please create a file called './spec/api_key.txt' containing your OpenRouter API key"
 end
 
+MODEL = "nvidia/llama-3.1-nemotron-70b-instruct"
+
 describe OpenRouter do
     it "can create client", focus: false do
         client = OpenRouter::Client.new ""
@@ -42,7 +44,7 @@ describe OpenRouter do
         choice.text.should be_a(String)
     end
 
-    it "should return a message from a message completion", focus: true do
+    it "should return a message from a message completion", focus: false do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
@@ -76,9 +78,9 @@ describe OpenRouter do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
-            model: "cohere/command-r-08-2024",
+            model: "nvidia/llama-3.1-nemotron-70b-instruct",
             messages: [
-                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi!"),
+                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi. Please run the hello_world tool."),
                 OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "Hi, what can I help you with?"),
                 OpenRouter::Message.new(role: OpenRouter::Role::User, content: "What's the weather in Tokyo?"),
             ],
@@ -132,11 +134,55 @@ describe OpenRouter do
         argument.value.should eq("Tokyo")
     end
 
-    it "should present tool call result", focus: true do
+    it "should call tool without arguments", focus: false do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
             model: "cohere/command-r-08-2024",
+            messages: [
+                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi. Please run the hello_world tool.")
+            ],
+            tools: [
+                OpenRouter::Tool.new(
+                    name: "hello_world",
+                    description: "Hello world tool",
+                    parameters: [] of OpenRouter::FunctionParameter
+                )
+            ]
+        )
+        
+        puts "sending request:\n"
+        puts request.to_pretty_json
+        
+        begin
+            response = client.complete(request)
+        rescue e
+            puts e.inspect + "\n"
+            next
+        end
+
+        puts "response:\n"
+        puts response.to_pretty_json
+
+        response.should be_a(OpenRouter::Response)
+
+        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+
+        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
+        choice.message.role.should eq(OpenRouter::Role::Assistant)
+        
+        choice.message.tool_calls.should be_a(Array(OpenRouter::ToolCall))
+
+        tool_calls = choice.message.tool_calls.not_nil!
+        tool_call = tool_calls[0]
+        tool_call.name.should eq("hello_world")
+    end
+
+    it "should present tool call result", focus: true do
+        client = OpenRouter::Client.new API_KEY
+
+        request = OpenRouter::CompletionRequest.new(
+            model: "mistralai/mistral-large-2411",
             tools: [
                 OpenRouter::Tool.new(
                     name: "get_weather",

@@ -34,6 +34,17 @@ module OpenRouter
         end
     end
 
+     # tool calls look like this:
+    # "tool_calls": [
+    #     {
+    #       "id": "call_9pw1qnYScqvGrCH58HWCvFH6",
+    #       "type": "function",
+    #       "function": {
+    #         "name": "get_current_weather",
+    #         "arguments": "{ \"location\": \"Boston, MA\"}"
+    #       }
+    #     }
+    #   ]
     struct ToolCall
         getter id : String
         getter type : String = "function"
@@ -48,17 +59,14 @@ module OpenRouter
         )
         end
 
-        # tool calls look like this:
-        # "tool_calls": [
-        #     {
-        #       "id": "call_9pw1qnYScqvGrCH58HWCvFH6",
-        #       "type": "function",
-        #       "function": {
-        #         "name": "get_current_weather",
-        #         "arguments": "{ \"location\": \"Boston, MA\"}"
-        #       }
-        #     }
-        #   ]
+        def self.from_json(json : String)
+            ToolCall.new(JSON.parse(json))
+        end
+
+        def self.from_json(json : JSON::Any)
+            ToolCall.new(json)
+        end
+       
         def initialize(json : JSON::Any)
             @id = json["id"].as_s
             @type = json["type"].as_s

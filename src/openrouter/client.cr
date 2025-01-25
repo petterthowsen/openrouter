@@ -43,13 +43,36 @@ module OpenRouter
     # Send a completion request for a text prompt using the specified model
     def complete(prompt : String, model : String) : Response
       completion_request = CompletionRequest.new(prompt, model)
-      response_json = post("/chat/completions", completion_request.to_json)
-      Response.new(response_json)
+      complete(completion_request)
     end
 
     # Send a completion request using the specified CompletionRequest object
     def complete(request : CompletionRequest) : Response
-      response_json = post("/chat/completions", request.to_json)
+      request_json = request.to_json
+      # parsed_json = JSON.parse(request_json).not_nil!
+
+      # # If the model starts with "mistral", modify the structure
+      # if parsed_json["model"].as_s.starts_with?("mistral")
+      #   tools = parsed_json["tools"].as_a
+
+      #   if tools
+      #     tools.each do |tool|
+      #       if required = tool["required"].as_a
+      #         function = tool["function"].as_h
+      #         function.merge!({"required" => required})
+      #         tool.delete("required")
+      #       end
+      #     end
+      #   end
+      # end
+
+      # # Convert back to JSON
+      # modified_request_json = parsed_json.to_json
+
+      # puts modified_request_json.inspect
+
+      # Send the request
+      response_json = post("/chat/completions", request_json)
       Response.new(response_json)
     end
 
