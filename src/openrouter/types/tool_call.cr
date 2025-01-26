@@ -77,6 +77,11 @@ module OpenRouter
 
             if raw_arguments.try &.as_s?
                 arguments_string = raw_arguments.as_s
+                
+                if arguments_string.empty?
+                    arguments_string = "{}"
+                end
+
                 # Parse the JSON string
                 parsed_arguments = JSON.parse(arguments_string)
             
