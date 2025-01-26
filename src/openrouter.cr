@@ -9,5 +9,5 @@ require "./openrouter/types/tool"
 
 # Provides an HTTP Client for the OpenRouter API (https://openrouter.ai)
 module OpenRouter
-  VERSION = "0.9.1"
+  VERSION = "0.9.2"
 end
