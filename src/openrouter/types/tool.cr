@@ -94,11 +94,13 @@ module OpenRouter
                 # required looks like this:
                 # required: ["location"]
                 # only add required parameters to the "required" array
-                json.field "required" do
-                    json.array do
-                        @parameters.each do |parameter|
-                            if parameter.required
-                                json.string parameter.name
+                if @parameters.any?(&.required)
+                    json.field "required" do
+                        json.array do
+                            @parameters.each do |parameter|
+                                if parameter.required
+                                    json.string parameter.name
+                                end
                             end
                         end
                     end

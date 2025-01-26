@@ -78,7 +78,7 @@ describe OpenRouter do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
-            model: "nvidia/llama-3.1-nemotron-70b-instruct",
+            model: "mistralai/mistral-large",
             messages: [
                 OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi. Please run the hello_world tool."),
                 OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "Hi, what can I help you with?"),
@@ -134,11 +134,11 @@ describe OpenRouter do
         argument.value.should eq("Tokyo")
     end
 
-    it "should call tool without arguments", focus: false do
+    it "should call tool without arguments", focus: true do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
-            model: "cohere/command-r-08-2024",
+            model: "mistralai/mistral-large",
             messages: [
                 OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi. Please run the hello_world tool.")
             ],
@@ -178,7 +178,7 @@ describe OpenRouter do
         tool_call.name.should eq("hello_world")
     end
 
-    it "should present tool call result", focus: true do
+    it "should present tool call result", focus: false do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
