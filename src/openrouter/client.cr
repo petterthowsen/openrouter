@@ -129,8 +129,6 @@ module OpenRouter
         # Even with 200 OK, check if the body contains an error object
         parsed = JSON.parse(response.body)
 
-        puts parsed.to_pretty_json
-
         if parsed["error"]?
           handle_api_error(parsed["error"].as_h)
         else
