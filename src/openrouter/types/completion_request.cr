@@ -14,7 +14,9 @@ module OpenRouter
         # or use the `get_models` method of the OpenRouter::Client
         property model : String?
 
-        #@response_format
+        property force_tool_support : Bool = false
+
+        property respond_with_json : Bool = false
 
         # the stop tokens
         property stop : String | Array(String) | Nil
@@ -109,9 +111,48 @@ module OpenRouter
                 if @prompt
                     json.field "prompt", @prompt
                 elsif @messages
+                    messages = @messages.not_nil!
+
+                    if messages[0].role == Role::System
+                        system_message = messages.shift
+                    else
+                        system_message = Message.new(role: Role::System, content: "")
+                    end
+
+                    if @tools && @force_tool_support
+                        system_content = system_message.content_string
+
+                        # append tools to the system message
+
+                        tools_json = @tools.map(&.to_json).join("\n")
+
+                        system_content += <<-MARKDOWN
+                        # Tools
+                        You have access to the following tool functions:
+                        #{tools_json}
+
+                        To perform a tool call, respond with a JSON object containing the tool calls and an optional message. For example:
+                        {
+                            "message": "Let me see check the current weather in Tokyo for you..."
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "name": "get_weather",
+                                        "arguments": "{ \\"location\\": \\"Tokyo\\" }"
+                                    }
+                                }
+                            ]
+                        }
+                        MARKDOWN
+                        
+                        system_message.content = system_content
+                    end
+
+                    messages.unshift system_message
+
                     json.field "messages" do
                         json.array do
-                            @messages.not_nil!.each_with_index do |message, index|
+                            messages.not_nil!.each_with_index do |message, index|
                                 message.to_json(json)
                             end
                         end
@@ -125,7 +166,6 @@ module OpenRouter
                 json.field "stream", @stream if @stream
                 json.field "max_tokens", @max_tokens if @max_tokens
                 json.field "temperature", @temperature if @temperature
-                json.field "tools", @tools if @tools
                 json.field "seed", @seed if @seed
                 json.field "top_p", @top_p if @top_p
                 json.field "top_k", @top_k if @top_k
@@ -141,6 +181,18 @@ module OpenRouter
                 json.field "models", @models if @models
                 json.field "route", @route if @route
                 json.field "provider", @provider if @provider
+
+                if @tools && !@force_tool_support
+                    json.field "tools", @tools if @tools
+                end
+
+                if @respond_with_json
+                    json.field "response_format" do
+                        json.object do
+                            json.field "type", "json_object"
+                        end
+                    end
+                end
             end
         end
     end

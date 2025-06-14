@@ -134,7 +134,7 @@ describe OpenRouter do
         argument.value.should eq("Tokyo")
     end
 
-    it "should call tool without arguments", focus: true do
+    it "should call tool without arguments", focus: false do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
@@ -302,5 +302,55 @@ describe OpenRouter do
         choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
         choice.message.role.should eq(OpenRouter::Role::Assistant)
 
+    end
+
+    it "can fake tools for", focus: true do
+        client = OpenRouter::Client.new API_KEY
+
+        request = OpenRouter::CompletionRequest.new(
+            model: "qwen/qwen-2.5-72b-instruct",
+            messages: [
+                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi. Please run the hello_world tool."),
+            ],
+            tools: [
+                OpenRouter::Tool.new(
+                    name: "hello_world",
+                    description: "Prints a test message",
+                    parameters: [
+                        OpenRouter::FunctionParameter.new(
+                            name: "message",
+                            type: "string",
+                            description: "The message to print.",
+                            required: true
+                        )
+                    ]
+                )
+            ]
+        )
+        request.force_tool_support = true
+        request.respond_with_json = true
+        
+        puts "sending request:\n"
+        puts request.to_pretty_json
+        
+        response = client.complete(request)
+
+        puts "response:\n"
+        puts response.to_pretty_json
+
+        response.should be_a(OpenRouter::Response)
+
+        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+
+        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
+        choice.message.role.should eq(OpenRouter::Role::Assistant)
+
+        choice.message.tool_calls.should be_a(Array(OpenRouter::ToolCall))
+
+        tool_calls = choice.message.tool_calls.not_nil!
+        tool_calls.should be_a(Array(OpenRouter::ToolCall))
+
+        tool_call = tool_calls[0]
+        tool_call.name.should eq("hello_world")
     end
 end

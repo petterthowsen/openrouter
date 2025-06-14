@@ -1,4 +1,17 @@
+require "uuid"
+
 module OpenRouter
+
+    class InvalidJSONResponse < Exception
+        getter text : String
+        getter cause : Exception?
+
+        def initialize(text : String, cause : Exception? = nil)
+            super("Invalid JSON: #{text}")
+            @text = text
+            @cause = cause
+        end
+    end
 
     enum ResponseObject
         ChatCompletion
@@ -60,7 +73,7 @@ module OpenRouter
 
     # Represents a non-streaming response
     struct NonStreamingChoice < Choice
-        getter message : Message
+        property message : Message
 
         def initialize(json : JSON::Any)
             @message = Message.from_json(json["message"])
@@ -129,6 +142,104 @@ module OpenRouter
                 json.field "choices", @choices
                 json.field "usage", @usage if @usage
             end
+        end
+
+        def self.from_request(request : CompletionRequest, response_json : JSON::Any)
+            response = new(response_json)
+
+            if request.respond_with_json
+                puts "Parsing response message as JSON..."
+
+                # verify json
+                message = response.choices[0].as(NonStreamingChoice).message
+                text = message.content_string
+
+                puts "raw text: #{text}"
+
+                # remove any text before the json
+                text = text.gsub /^[^\{]+/, ""
+
+                # remove any text after the json
+                text = text.gsub /[^\}]+$/, ""
+
+                puts "cleaned up: `#{text}`"
+
+                begin
+                    # parse json and see if there's any tool calls
+                    json = JSON.parse(text)
+                rescue e
+                    raise InvalidJSONResponse.new("Invalid JSON in message content: #{text}", e)
+                end
+
+                if request.force_tool_support
+                    puts "force tool support..."
+
+                    if json["message"]?
+                        message.content = json["message"].as_s
+                    else
+                        message.content = ""
+                    end
+
+                    puts "message content set: #{message.content}"
+
+                    # parse tool calls
+                    if json["tool_calls"]?
+                        puts "parsing tool calls..."
+
+                        message.tool_calls = json["tool_calls"].as_a.map do |tool_call_json|
+                            if tool_call_json["function"]?
+                                func = tool_call_json["function"].as_h
+                            else
+                                func = tool_call_json
+                            end
+
+                            # function name
+                            if func["name"]?
+                                name = func["name"].as_s
+                            else
+                                raise InvalidJSONResponse.new("Missing function name in tool call.")
+                            end
+
+                            puts "function name: #{name}"
+
+                            # function arguments, it could be a JSON string or a JSON object
+                            if func["arguments"]?
+                                puts "arguments : #{func["arguments"].to_s}"
+
+                                if func["arguments"].as_s?
+                                    puts "arguments is a JSON string, parsing..."
+                                    begin
+                                        args = JSON.parse(func["arguments"].as_s).as_h
+                                    rescue e
+                                        raise InvalidJSONResponse.new("Invalid JSON in tool call arguments.", e)
+                                    end
+                                else
+                                    args = func["arguments"].as_h? || {} of String => JSON::Any
+                                end
+                            else
+                                args = {} of String => JSON::Any
+                            end
+
+                            # create arguments array as an array of ToolCallArgument
+                            arguments = args.map do |key, value|
+                                ToolCallArgument.new(key, value)
+                            end
+
+                            # generate a unique id
+                            id = "tool_call_" + UUID.random.to_s
+
+                            ToolCall.new(id, name, arguments, "function")
+                        end
+
+                    end
+
+                    choice = response.choices[0].as(NonStreamingChoice)
+                    choice.message = message
+                    response.choices[0] = choice
+                end
+            end
+
+            response
         end
 
         def initialize(json : JSON::Any)
