@@ -74,7 +74,8 @@ module OpenRouter
                 #       "type": "string",
                 #       "description": "The date to search for"
                 #     }
-                #   }
+                #   },
+                #   "required": ["location"]
                 # }
                 json.field "parameters" do
                     json.object do
@@ -88,23 +89,21 @@ module OpenRouter
                                 end
                             end
                         end
-                    end
-                end
-
-                # required looks like this:
-                # required: ["location"]
-                # only add required parameters to the "required" array
-                if @parameters.any?(&.required)
-                    json.field "required" do
-                        json.array do
-                            @parameters.each do |parameter|
-                                if parameter.required
-                                    json.string parameter.name
+                        
+                        # Move required inside parameters object
+                        if @parameters.any?(&.required)
+                            json.field "required" do
+                                json.array do
+                                    @parameters.each do |parameter|
+                                        if parameter.required
+                                            json.string parameter.name
+                                        end
+                                    end
                                 end
                             end
                         end
                     end
-                end                
+                end             
             end
         end
     end

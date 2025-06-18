@@ -178,11 +178,11 @@ describe OpenRouter do
         tool_call.name.should eq("hello_world")
     end
 
-    it "should present tool call result", focus: false do
+    it "should present tool call result", focus: true do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
-            model: "mistralai/mistral-large-2411",
+            model: "mistralai/mistral-medium-3",
             tools: [
                 OpenRouter::Tool.new(
                     name: "get_weather",
@@ -203,7 +203,7 @@ describe OpenRouter do
                 OpenRouter::Message.new(role: OpenRouter::Role::User, content: "What's the weather in Tokyo?"),
                 OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "Let me see...", tool_calls: [
                     OpenRouter::ToolCall.new(
-                        id: "get_weather_9pw1qnYScqvGrCH58HWCvFH6",
+                        id: "123456789",
                         name: "get_weather",
                         arguments: [
                             OpenRouter::ToolCallArgument.new(
@@ -214,7 +214,7 @@ describe OpenRouter do
                     )
                 ]),
                 OpenRouter::Message.new(OpenRouter::ToolCall.new(
-                    id: "get_weather_9pw1qnYScqvGrCH58HWCvFH6",
+                    id: "123456789",
                     name: "get_weather",
                     arguments: [
                         OpenRouter::ToolCallArgument.new(

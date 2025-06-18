@@ -112,7 +112,6 @@ module OpenRouter
             json.object do
                 json.field "id", @id
                 json.field "type", @type
-                json.field "name", @name
 
                 json.field "function" do
                     json.object do
