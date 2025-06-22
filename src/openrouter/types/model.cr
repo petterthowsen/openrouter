@@ -11,6 +11,10 @@ module OpenRouter
         getter pricing_completion : String
         getter pricing_request : String
         getter pricing_image : String
+        getter pricing_web_search : String
+        getter pricing_internal_reasoning : String
+        getter pricing_input_cache_read : String
+        getter pricing_input_cache_write : String
 
         getter context_length : Int32
 
@@ -73,10 +77,14 @@ module OpenRouter
             @created = json["created"].as_i
             @description = json["description"].as_s
 
-            @pricing_prompt = json["pricing"]["prompt"].as_s
-            @pricing_completion = json["pricing"]["completion"].as_s
-            @pricing_request = json["pricing"]["request"].as_s
-            @pricing_image = json["pricing"]["image"].as_s
+            @pricing_prompt = json["pricing"]["prompt"]?.try(&.as_s) || "0"
+            @pricing_completion = json["pricing"]["completion"]?.try(&.as_s) || "0"
+            @pricing_request = json["pricing"]["request"]?.try(&.as_s) || "0"
+            @pricing_image = json["pricing"]["image"]?.try(&.as_s) || "0"
+            @pricing_web_search = json["pricing"]["web_search"]?.try(&.as_s) || "0"
+            @pricing_internal_reasoning = json["pricing"]["internal_reasoning"]?.try(&.as_s) || "0"
+            @pricing_input_cache_read = json["pricing"]["input_cache_read"]?.try(&.as_s) || "0"
+            @pricing_input_cache_write = json["pricing"]["input_cache_write"]?.try(&.as_s) || "0"
 
             @context_length = json["context_length"].as_i
 
