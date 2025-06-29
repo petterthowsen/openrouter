@@ -5,17 +5,20 @@ module OpenRouter
         property type : String
         property description : String
         property required : Bool = false
+        property items_type : String? = nil
 
         def initialize(
             name : String,
             type : String,
             description : String,
-            required : Bool = false
+            required : Bool = false,
+            items_type : String? = nil
         )
             @name = name
             @type = type
             @description = description
             @required = required
+            @items_type = items_type
         end
 
         def to_json(io : IO)
@@ -28,6 +31,15 @@ module OpenRouter
             json.object do
                 json.field "type", @type
                 json.field "description", @description
+                
+                # Add items field for array types
+                if @type == "array" && @items_type
+                    json.field "items" do
+                        json.object do
+                            json.field "type", @items_type
+                        end
+                    end
+                end
             end
         end
     end
