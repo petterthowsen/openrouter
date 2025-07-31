@@ -1,3 +1,5 @@
+require "./reasoning"
+
 module OpenRouter
 
     class CompletionRequest
@@ -34,6 +36,9 @@ module OpenRouter
         # Otherwise, we transform the tools into a YAML template. The model responds with an assistant message.
         # See models supporting tool calling: openrouter.ai/models?supported_parameters=tools
         property tools : Array(Tool) = [] of Tool
+
+        # Reasoning configuration for models that support reasoning tokens
+        property reasoning : Reasoning?
 
         #### Advanced optional parameters #####
         
@@ -184,6 +189,10 @@ module OpenRouter
 
                 if @tools && !@force_tool_support
                     json.field "tools", @tools if @tools
+                end
+
+                if @reasoning
+                    json.field "reasoning", @reasoning
                 end
 
                 if @respond_with_json

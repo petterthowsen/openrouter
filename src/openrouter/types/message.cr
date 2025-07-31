@@ -27,13 +27,21 @@ module OpenRouter
 
         property tool_calls : Array(ToolCall)?
 
+        # Reasoning tokens - visible reasoning trace from the model
+        property reasoning : String?
+
+        # Reasoning details for preserving reasoning blocks (used in tool calling)
+        property reasoning_details : JSON::Any?
+
         # Initialize for user/assistant/system messages
-        def initialize(role : Role, content : Content?, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil)
+        def initialize(role : Role, content : Content?, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil, reasoning : String? = nil, reasoning_details : JSON::Any? = nil)
             @role = role
             @content = content
             @name = name
             @tool_call_id = tool_call_id
             @tool_calls = tool_calls
+            @reasoning = reasoning
+            @reasoning_details = reasoning_details
 
             if role == Role::Tool && tool_call_id == nil
                 raise "Tool messages must have a tool_call_id"
@@ -186,7 +194,13 @@ module OpenRouter
                 tool_call_id = nil
             end
 
-            Message.new(role, content, name, tool_call_id, tool_calls: tool_calls)
+            # reasoning
+            reasoning = json.as_h.has_key?("reasoning") ? json["reasoning"].as_s? : nil
+
+            # reasoning_details
+            reasoning_details = json.as_h.has_key?("reasoning_details") ? json["reasoning_details"] : nil
+
+            Message.new(role, content, name, tool_call_id, tool_calls: tool_calls, reasoning: reasoning, reasoning_details: reasoning_details)
         end
 
         def to_json(io : IO)
@@ -249,6 +263,16 @@ module OpenRouter
                                 @tool_calls.not_nil!.each { |tool_call| tool_call.to_json(json) }
                             end
                         end
+                    end
+
+                    # Include reasoning if present
+                    if @reasoning
+                        json.field("reasoning", @reasoning)
+                    end
+
+                    # Include reasoning_details if present
+                    if @reasoning_details
+                        json.field("reasoning_details", @reasoning_details)
                     end
                 end
             end

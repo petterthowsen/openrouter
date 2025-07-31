@@ -56,6 +56,7 @@ module OpenRouter
 
         def initialize(json : JSON::Any)
             @text = json["text"].as_s
+            @finish_reason = json.as_h.has_key?("finish_reason") ? json["finish_reason"].as_s? : nil
         end
 
         def to_json(io : IO)
@@ -67,6 +68,7 @@ module OpenRouter
         def to_json(json : JSON::Builder)
             json.object do
                 json.field "text", @text
+                json.field "finish_reason", @finish_reason if @finish_reason
             end
         end
     end
@@ -77,6 +79,7 @@ module OpenRouter
 
         def initialize(json : JSON::Any)
             @message = Message.from_json(json["message"])
+            @finish_reason = json.as_h.has_key?("finish_reason") ? json["finish_reason"].as_s? : nil
         end
 
         def to_json(io : IO)
@@ -88,6 +91,7 @@ module OpenRouter
         def to_json(json : JSON::Builder)
             json.object do
                 json.field "message", @message
+                json.field "finish_reason", @finish_reason if @finish_reason
             end
         end
     end
@@ -100,6 +104,7 @@ module OpenRouter
 
         def initialize(json : JSON::Any)
             @delta = Message.from_json(json["delta"])
+            @finish_reason = json.as_h.has_key?("finish_reason") ? json["finish_reason"].as_s? : nil
         end
 
         def to_json(io : IO)
@@ -111,6 +116,7 @@ module OpenRouter
         def to_json(json : JSON::Builder)
             json.object do
                 json.field "delta", @delta
+                json.field "finish_reason", @finish_reason if @finish_reason
             end
         end
     end
