@@ -104,8 +104,10 @@ module OpenRouter
       # end
 
       begin
-        response = HTTP::Client.exec method, url, headers: headers, body: body, 
-                                   connect_timeout: @connect_timeout, read_timeout: @read_timeout
+        client = HTTP::Client.new(URI.parse(url))
+        client.connect_timeout = @connect_timeout
+        client.read_timeout = @read_timeout
+        response = client.exec method, url, headers: headers, body: body
       rescue e
         raise OpenRouter::Error.new("Network or client error: #{e.message}")
       end
