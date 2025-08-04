@@ -18,14 +18,23 @@ module OpenRouter
     # Together with #app_name it tells OpenRouter which app is using the API
     property app_url : String?
 
+    # Connection timeout in seconds (default: 60.0)
+    property connect_timeout : Float64
+
+    # Read timeout in seconds (default: 60.0)
+    property read_timeout : Float64
+
     # Initialize a new OpenRouter::Client
     # 
     # The *api_key* is generally required to use the API (though an invalid key seems to allow querying for models.)
     # *app_name* and *app_url* are optional and tell OpenRouter about your application.
-    def initialize(api_key : String, app_name : String? = nil, app_url : String? = nil)
+    # *connect_timeout* and *read_timeout* are timeout values in seconds (default: 60.0).
+    def initialize(api_key : String, app_name : String? = nil, app_url : String? = nil, connect_timeout : Float64 = 60.0, read_timeout : Float64 = 60.0)
       @api_key = api_key
       @app_name = app_name
       @app_url = app_url
+      @connect_timeout = connect_timeout
+      @read_timeout = read_timeout
     end
 
     # Returns an array of Model structs representing the available models currently supported by OpenRouter
@@ -95,7 +104,8 @@ module OpenRouter
       # end
 
       begin
-        response = HTTP::Client.exec method, url, headers: headers, body: body
+        response = HTTP::Client.exec method, url, headers: headers, body: body, 
+                                   connect_timeout: @connect_timeout, read_timeout: @read_timeout
       rescue e
         raise OpenRouter::Error.new("Network or client error: #{e.message}")
       end
