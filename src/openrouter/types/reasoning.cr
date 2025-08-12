@@ -1,6 +1,8 @@
 module OpenRouter
     # Represents the reasoning configuration for models that support reasoning tokens
     struct Reasoning
+        include JSON::Serializable
+
         # Effort level for reasoning: "high", "medium", or "low" (OpenAI-style)
         property effort : String?
 
@@ -27,21 +29,6 @@ module OpenRouter
             # Validate that only one of effort or max_tokens is set
             if effort && max_tokens
                 raise "Cannot specify both effort and max_tokens"
-            end
-        end
-
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-                to_json(json)
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "effort", @effort if @effort
-                json.field "max_tokens", @max_tokens if @max_tokens
-                json.field "exclude", @exclude if @exclude != false
-                json.field "enabled", @enabled if @enabled
             end
         end
 

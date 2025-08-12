@@ -1,6 +1,8 @@
 module OpenRouter
 
     struct ToolCallArgument
+        include JSON::Serializable
+
         getter name : String
         getter value : JSON::Any
 
@@ -12,25 +14,6 @@ module OpenRouter
         def initialize(name : String, value : String)
             @name = name
             @value = JSON::Any.new(value)
-        end
-
-        def self.from_json(json : JSON::Any)
-            name = json["name"].as_s
-            value = json["value"]
-            ToolCallArgument.new(name, value)
-        end
-
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "name", @name
-                json.field "value", @value.raw
-            end
         end
     end
 
@@ -45,90 +28,58 @@ module OpenRouter
     #       }
     #     }
     #   ]
-    struct ToolCall
-        getter id : String
-        getter type : String = "function"
-        getter name : String
-        getter arguments : Array(ToolCallArgument) = [] of ToolCallArgument
-
-        def initialize(
-            @id : String,
-            @name : String,
-            @arguments : Array(ToolCallArgument)    = [] of ToolCallArgument,
-            @type : String = "function"
-        )
-        end
-
-        def self.from_json(json : String)
-            ToolCall.new(JSON.parse(json))
-        end
-
-        def self.from_json(json : JSON::Any)
-            ToolCall.new(json)
-        end
-       
-        def initialize(json : JSON::Any)
-            @id = json["id"].as_s
-            @type = json["type"].as_s
-            @name = json["function"]["name"].as_s
+    # Helper struct for the function part of a tool call
+    struct ToolFunction
+        include JSON::Serializable
         
-            # Handle `arguments`
-            raw_arguments = json["function"]["arguments"]
+        property name : String
+        property arguments : String  # This is a JSON string in the API
+        
+        def initialize(@name : String, @arguments : String = "{}")
+        end
+    end
 
-            if raw_arguments.try &.as_s?
-                arguments_string = raw_arguments.as_s
-                
-                if arguments_string.empty?
-                    arguments_string = "{}"
-                end
+    struct ToolCall
+        include JSON::Serializable
 
-                # Parse the JSON string
-                parsed_arguments = JSON.parse(arguments_string)
+        property id : String
+        property type : String = "function"
+        
+        @[JSON::Field(key: "function")]
+        property function_data : ToolFunction
+        
+        # Convenience getters that delegate to function_data
+        def name
+            function_data.name
+        end
+        
+        def arguments : Array(ToolCallArgument)
+            # Parse the arguments JSON string and convert to ToolCallArgument array
+            if function_data.arguments.empty?
+                return [] of ToolCallArgument
+            end
             
-                if arguments_hash = parsed_arguments.as_h?
-                    @arguments = arguments_hash.map do |key, value|
-                        ToolCallArgument.new(key, value)
-                    end
-                elsif arguments_array = parsed_arguments.as_a?
-                    @arguments = arguments_array.map { |arg| ToolCallArgument.from_json(arg) }
-                else
-                    raise "Unexpected format for arguments: Expected Array or Hash, got #{parsed_arguments.class}"
-                end
-            elsif raw_arguments.is_a?(Array)
-                # Already an array
-                @arguments = raw_arguments.as_a.map { |arg| ToolCallArgument.from_json(arg) }
+            parsed = JSON.parse(function_data.arguments)
+            if args_hash = parsed.as_h?
+                args_hash.map { |key, value| ToolCallArgument.new(key, value) }
             else
-                raise "Unexpected type for arguments: #{raw_arguments.class}"
+                [] of ToolCallArgument
             end
         end
 
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "id", @id
-                json.field "type", @type
-
-                json.field "function" do
-                    json.object do
-                        json.field "name", @name
-                        
-                        args = JSON.build do |js|
-                            js.object do
-                                @arguments.each do |arg|
-                                    js.field arg.name, arg.value
-                                end
-                            end
-                        end
-
-                        json.field "arguments", args.to_s
+        def initialize(@id : String, name : String, arguments : Array(ToolCallArgument) = [] of ToolCallArgument, @type : String = "function")
+            # Convert arguments array to JSON string for the function_data
+            args_json = JSON.build do |json|
+                json.object do
+                    arguments.each do |arg|
+                        json.field arg.name, arg.value
                     end
                 end
             end
+            
+            @function_data = ToolFunction.new(name, args_json)
         end
+
+
     end 
 end

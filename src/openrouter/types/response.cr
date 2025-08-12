@@ -19,110 +19,40 @@ module OpenRouter
     end
 
     struct Usage
+        include JSON::Serializable
+
+        @[JSON::Field(key: "prompt_tokens")]
         getter prompt : Int32
+        
+        @[JSON::Field(key: "completion_tokens")]
         getter completion : Int32
+        
+        @[JSON::Field(key: "total_tokens")]
         getter total : Int32
 
-        def initialize(json : JSON::Any)
-            @prompt = json["prompt_tokens"].as_i
-            @completion = json["completion_tokens"].as_i
-            @total = json["total_tokens"].as_i
-        end
-
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "prompt", @prompt
-                json.field "completion", @completion
-                json.field "total", @total
-            end
+        def initialize(@prompt : Int32, @completion : Int32, @total : Int32)
         end
     end
 
-    abstract struct Choice
+    struct Choice
+        include JSON::Serializable
+
         getter finish_reason : String?
-        abstract def initialize(json : JSON::Any)
-        abstract def to_json(io : IO)
-        abstract def to_json(json : JSON::Builder)
-    end
-
-    struct NonChatChoice < Choice
-        getter text : String
-
-        def initialize(json : JSON::Any)
-            @text = json["text"].as_s
-            @finish_reason = json.as_h.has_key?("finish_reason") ? json["finish_reason"].as_s? : nil
-        end
-
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "text", @text
-                json.field "finish_reason", @finish_reason if @finish_reason
-            end
-        end
-    end
-
-    # Represents a non-streaming response
-    struct NonStreamingChoice < Choice
-        property message : Message
-
-        def initialize(json : JSON::Any)
-            @message = Message.from_json(json["message"])
-            @finish_reason = json.as_h.has_key?("finish_reason") ? json["finish_reason"].as_s? : nil
-        end
-
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "message", @message
-                json.field "finish_reason", @finish_reason if @finish_reason
-            end
-        end
-    end
-
-    # Represents a streaming response
-    # 
-    # The delta property contains a partial message.
-    struct StreamingChoice < Choice
-        getter delta : Message
-
-        def initialize(json : JSON::Any)
-            @delta = Message.from_json(json["delta"])
-            @finish_reason = json.as_h.has_key?("finish_reason") ? json["finish_reason"].as_s? : nil
-        end
-
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "delta", @delta
-                json.field "finish_reason", @finish_reason if @finish_reason
-            end
-        end
+        
+        # For non-chat completions (text generation)
+        getter text : String?
+        
+        # For chat completions (non-streaming)
+        property message : Message?
+        
+        # For streaming completions
+        getter delta : Message?
     end
 
     # Represents a response from 
     struct Response
+        include JSON::Serializable
+
         getter id : String?
         getter created : Int32
         getter model : String
@@ -134,30 +64,14 @@ module OpenRouter
         # the end accompanied by an empty choices array.
         getter usage : Usage?
 
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
-        def to_json(json : JSON::Builder)
-            json.object do
-                json.field "id", @id
-                json.field "created", @created
-                json.field "model", @model
-                json.field "choices", @choices
-                json.field "usage", @usage if @usage
-            end
-        end
-
         def self.from_request(request : CompletionRequest, response_json : JSON::Any)
-            response = new(response_json)
+            response = from_json(response_json.to_json)
 
             if request.respond_with_json
                 puts "Parsing response message as JSON..."
 
                 # verify json
-                message = response.choices[0].as(NonStreamingChoice).message
+                message = response.choices[0].message.not_nil!
                 text = message.content_string
 
                 puts "raw text: #{text}"
@@ -239,7 +153,7 @@ module OpenRouter
 
                     end
 
-                    choice = response.choices[0].as(NonStreamingChoice)
+                    choice = response.choices[0]
                     choice.message = message
                     response.choices[0] = choice
                 end
@@ -248,28 +162,6 @@ module OpenRouter
             response
         end
 
-        def initialize(json : JSON::Any)
-            @id = json["id"]? ? json["id"].as_s : nil
-            @created = json["created"].as_i
-            @model = json["model"].as_s
-            
-            # loop through choices
-            # and add them to the choices array
-            json["choices"].as_a.each do |choice_json|
-                if choice_json.as_h.has_key? "text"
-                    @choices << NonChatChoice.new(choice_json)
-                elsif choice_json.as_h.has_key? "message"
-                    @choices << NonStreamingChoice.new(choice_json)
-                elsif choice_json.as_h.has_key? "delta"
-                    @choices << StreamingChoice.new(choice_json)
-                else
-                    raise "Unknown choice type in choice #{choice_json}"
-                end
-            end
 
-            if json.as_h.has_key? "usage"
-                @usage = Usage.new(json["usage"])
-            end
-        end
     end
 end

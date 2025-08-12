@@ -3,6 +3,7 @@ require "./reasoning"
 module OpenRouter
 
     class CompletionRequest
+        include JSON::Serializable
 
         # The chat message history
         property messages : Array(Message)?
@@ -105,12 +106,7 @@ module OpenRouter
             @tools << tool
         end
 
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-                to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
+        # Custom serialization for complex logic
         def to_json(json : JSON::Builder)
             json.object do
                 if @prompt

@@ -1,6 +1,8 @@
 module OpenRouter
 
     class FunctionParameter
+        include JSON::Serializable
+
         property name : String
         property type : String
         property description : String
@@ -21,12 +23,7 @@ module OpenRouter
             @items_type = items_type
         end
 
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
+        # Custom serialization for complex structure
         def to_json(json : JSON::Builder)
             json.object do
                 json.field "type", @type
@@ -45,6 +42,8 @@ module OpenRouter
     end
 
     class Function
+        include JSON::Serializable
+
         property name : String
         property description : String?
 
@@ -60,12 +59,7 @@ module OpenRouter
             @parameters = parameters
         end
 
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-
+        # Custom serialization for complex structure
         def to_json(json : JSON::Builder)
             json.object do
                 json.field "name", @name
@@ -121,6 +115,8 @@ module OpenRouter
     end
 
     class Tool
+        include JSON::Serializable
+
         property type : String = "function"
         property function : Function
 
@@ -132,12 +128,7 @@ module OpenRouter
             @function = Function.new(name, description, parameters)
         end
 
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-              to_json(json) # Delegate to the JSON::Builder version
-            end
-        end
-        
+        # Custom serialization for complex structure
         def to_json(json : JSON::Builder)
             json.object do
                 json.field "type", @type

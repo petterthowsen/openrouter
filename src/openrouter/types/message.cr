@@ -17,6 +17,8 @@ module OpenRouter
     alias Content = String | Array(ContentPart)
 
     struct Message
+        include JSON::Serializable
+
         # Common fields
         property role : Role? = nil
         property content : Content?
@@ -203,12 +205,7 @@ module OpenRouter
             Message.new(role, content, name, tool_call_id, tool_calls: tool_calls, reasoning: reasoning, reasoning_details: reasoning_details)
         end
 
-        def to_json(io : IO)
-            JSON.build(io) do |json|
-                to_json(json)
-            end
-        end
-
+        # Custom serialization for complex multi-modal content and tool calls
         def to_json(json : JSON::Builder)
             # Build the JSON object directly
             json.object do

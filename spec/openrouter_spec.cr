@@ -38,9 +38,9 @@ describe OpenRouter do
         response.choices.should be_a(Array(OpenRouter::Choice))
         response.usage.should be_a(OpenRouter::Usage)
 
-        response.choices[0].should be_a(OpenRouter::NonChatChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonChatChoice)
+        choice = response.choices[0]
         choice.text.should be_a(String)
     end
 
@@ -62,10 +62,10 @@ describe OpenRouter do
 
         response.should be_a(OpenRouter::Response)
 
-        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        message : OpenRouter::Message = choice.message
+        choice = response.choices[0]
+        message : OpenRouter::Message = choice.message.not_nil!
         message.role.should eq(OpenRouter::Role::Assistant)
         
         message.content.should be_a(String)
@@ -115,14 +115,14 @@ describe OpenRouter do
 
         response.should be_a(OpenRouter::Response)
 
-        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        choice.message.role.should eq(OpenRouter::Role::Assistant)
+        choice = response.choices[0]
+        choice.message.not_nil!.role.should eq(OpenRouter::Role::Assistant)
         
-        choice.message.tool_calls.should be_a(Array(OpenRouter::ToolCall))
+        choice.message.not_nil!.tool_calls.should be_a(Array(OpenRouter::ToolCall))
 
-        tool_calls = choice.message.tool_calls.not_nil!
+        tool_calls = choice.message.not_nil!.tool_calls.not_nil!
         tool_call = tool_calls[0]
         tool_call.name.should eq("get_weather")
 
@@ -166,14 +166,14 @@ describe OpenRouter do
 
         response.should be_a(OpenRouter::Response)
 
-        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        choice.message.role.should eq(OpenRouter::Role::Assistant)
+        choice = response.choices[0]
+        choice.message.not_nil!.role.should eq(OpenRouter::Role::Assistant)
         
-        choice.message.tool_calls.should be_a(Array(OpenRouter::ToolCall))
+        choice.message.not_nil!.tool_calls.should be_a(Array(OpenRouter::ToolCall))
 
-        tool_calls = choice.message.tool_calls.not_nil!
+        tool_calls = choice.message.not_nil!.tool_calls.not_nil!
         tool_call = tool_calls[0]
         tool_call.name.should eq("hello_world")
     end
@@ -249,10 +249,10 @@ describe OpenRouter do
 
         response.should be_a(OpenRouter::Response)
 
-        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        choice.message.role.should eq(OpenRouter::Role::Assistant)
+        choice = response.choices[0]
+        choice.message.not_nil!.role.should eq(OpenRouter::Role::Assistant)
     end
 
     it "should describe image", focus: false do
@@ -297,10 +297,10 @@ describe OpenRouter do
 
         response.should be_a(OpenRouter::Response)
 
-        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        choice.message.role.should eq(OpenRouter::Role::Assistant)
+        choice = response.choices[0]
+        choice.message.not_nil!.role.should eq(OpenRouter::Role::Assistant)
 
     end
 
@@ -335,13 +335,13 @@ describe OpenRouter do
         puts response.to_pretty_json
 
         response.should be_a(OpenRouter::Response)
-        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        choice.message.role.should eq(OpenRouter::Role::Assistant)
+        choice = response.choices[0]
+        choice.message.not_nil!.role.should eq(OpenRouter::Role::Assistant)
         
         # Check if reasoning was included (depends on model)
-        puts "Reasoning: #{choice.message.reasoning}"
+        puts "Reasoning: #{choice.message.not_nil!.reasoning}"
     end
 
     it "should create reasoning configurations correctly", focus: false do
@@ -415,14 +415,14 @@ describe OpenRouter do
 
         response.should be_a(OpenRouter::Response)
 
-        response.choices[0].should be_a(OpenRouter::NonStreamingChoice)
+        response.choices[0].should be_a(OpenRouter::Choice)
 
-        choice = response.choices[0].as(OpenRouter::NonStreamingChoice)
-        choice.message.role.should eq(OpenRouter::Role::Assistant)
+        choice = response.choices[0]
+        choice.message.not_nil!.role.should eq(OpenRouter::Role::Assistant)
 
-        choice.message.tool_calls.should be_a(Array(OpenRouter::ToolCall))
+        choice.message.not_nil!.tool_calls.should be_a(Array(OpenRouter::ToolCall))
 
-        tool_calls = choice.message.tool_calls.not_nil!
+        tool_calls = choice.message.not_nil!.tool_calls.not_nil!
         tool_calls.should be_a(Array(OpenRouter::ToolCall))
 
         tool_call = tool_calls[0]

@@ -2,6 +2,8 @@ module OpenRouter
 
     # Represents a language model retrieved from the OpenRouter API via the `/models` endpoint
     struct Model
+        include JSON::Serializable
+
         getter id : String
         getter name : String
         getter created : Int32
