@@ -112,6 +112,82 @@ module OpenRouter
                 end             
             end
         end
+
+        # Custom deserialization to handle complex parameters structure
+        def self.from_json(string_or_io)
+            parser = JSON::PullParser.new(string_or_io)
+            new(parser)
+        end
+
+        def self.new(parser : JSON::PullParser)
+            name = ""
+            description = nil
+            parameters = [] of FunctionParameter
+
+            parser.read_object do |key|
+                case key
+                when "name"
+                    name = parser.read_string
+                when "description"
+                    description = parser.read_string_or_null
+                when "parameters"
+                    # Parse the complex parameters object structure
+                    parser.read_object do |param_key|
+                        case param_key
+                        when "properties"
+                            parser.read_object do |prop_name|
+                                param_type = ""
+                                param_description = ""
+                                items_type = nil
+
+                                parser.read_object do |prop_key|
+                                    case prop_key
+                                    when "type"
+                                        param_type = parser.read_string
+                                    when "description"
+                                        param_description = parser.read_string
+                                    when "items"
+                                        parser.read_object do |items_key|
+                                            case items_key
+                                            when "type"
+                                                items_type = parser.read_string
+                                            else
+                                                parser.skip
+                                            end
+                                        end
+                                    else
+                                        parser.skip
+                                    end
+                                end
+
+                                parameters << FunctionParameter.new(
+                                    name: prop_name,
+                                    type: param_type,
+                                    description: param_description,
+                                    required: false, # Will be set below
+                                    items_type: items_type
+                                )
+                            end
+                        when "required"
+                            required_params = [] of String
+                            parser.read_array do
+                                required_params << parser.read_string
+                            end
+                            # Mark required parameters
+                            parameters.each do |param|
+                                param.required = required_params.includes?(param.name)
+                            end
+                        else
+                            parser.skip
+                        end
+                    end
+                else
+                    parser.skip
+                end
+            end
+
+            new(name, description, parameters)
+        end
     end
 
     class Tool
@@ -136,6 +212,33 @@ module OpenRouter
                     @function.to_json(json)
                 end
             end
+        end
+
+        # Custom deserialization to handle complex function structure
+        def self.from_json(string_or_io)
+            parser = JSON::PullParser.new(string_or_io)
+            new(parser)
+        end
+
+        def self.new(parser : JSON::PullParser)
+            type = "function"
+            function = nil
+
+            parser.read_object do |key|
+                case key
+                when "type"
+                    type = parser.read_string
+                when "function"
+                    function = Function.new(parser)
+                else
+                    parser.skip
+                end
+            end
+
+            raise "Missing function in Tool" unless function
+            tool = new(function)
+            tool.type = type
+            tool
         end
     end
 end

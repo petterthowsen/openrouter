@@ -24,6 +24,68 @@ describe OpenRouter do
         models.should be_a(Array(OpenRouter::Model))
     end
 
+    it "should serialize and deserialize JSON request", focus: false do
+        request = OpenRouter::CompletionRequest.new(
+            model: "mistralai/mistral-medium-3",
+            tools: [
+                OpenRouter::Tool.new(
+                    name: "get_weather",
+                    description: "Get the weather of a location",
+                    parameters: [
+                        OpenRouter::FunctionParameter.new(
+                            name: "location",
+                            type: "string",
+                            description: "The location to get the weather for. For example 'tokyo' or 'new york'.",
+                            required: true
+                        )
+                    ]
+                )
+            ],
+            messages: [
+                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "Hi!"),
+                OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "Hi, what can I help you with?"),
+                OpenRouter::Message.new(role: OpenRouter::Role::User, content: "What's the weather in Tokyo?"),
+                OpenRouter::Message.new(role: OpenRouter::Role::Assistant, content: "Let me see...", tool_calls: [
+                    OpenRouter::ToolCall.new(
+                        id: "123456789",
+                        name: "get_weather",
+                        arguments: [
+                            OpenRouter::ToolCallArgument.new(
+                                name: "location",
+                                value: "Tokyo"
+                            )
+                        ]
+                    )
+                ]),
+                OpenRouter::Message.new(OpenRouter::ToolCall.new(
+                    id: "123456789",
+                    name: "get_weather",
+                    arguments: [
+                        OpenRouter::ToolCallArgument.new(
+                            name: "location",
+                            value: "Tokyo"
+                        ),
+                        OpenRouter::ToolCallArgument.new(
+                            name: "temperature",
+                            value: "22"
+                        ),
+                        OpenRouter::ToolCallArgument.new(
+                            name: "unit",
+                            value: "Celcius"
+                        )
+                    ]
+                )),
+            ],
+        )
+
+        request_json = request.to_json
+
+        request_json.should be_a(String)
+
+        deserialized = OpenRouter::CompletionRequest.from_json(request_json)
+        deserialized.should be_a(OpenRouter::CompletionRequest)
+    end
+
     it "should return response from a prompt", focus: false do
         client = OpenRouter::Client.new API_KEY
         response = client.complete("Hello, how are you?", "mistralai/mistral-7b-instruct:free")
@@ -74,7 +136,7 @@ describe OpenRouter do
         message.length.should be > 0
     end
 
-    it "should call tool", focus: false do
+    it "should call tool", focus: true do
         client = OpenRouter::Client.new API_KEY
 
         request = OpenRouter::CompletionRequest.new(
@@ -92,7 +154,7 @@ describe OpenRouter do
                         OpenRouter::FunctionParameter.new(
                             name: "location",
                             type: "string",
-                            description: "The location to get the weather for. For example 'tokyo' or 'new york'.",
+                            description: "The location to get the weather for. For example 'Tokyo' or 'New York'.",
                             required: true
                         )
                     ]
