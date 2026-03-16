@@ -211,10 +211,12 @@ module OpenRouter
             json.object do
                 json.field("role", @role.to_s.downcase)
 
-                if content.is_a?(String)
+                if @content.nil?
+                    json.field("content") { json.null }
+                elsif @content.is_a?(String)
                     json.field("content", @content)
                 else
-                    json.field "content", do
+                    json.field "content" do
                         json.array do
                             @content.as(Array(ContentPart)).each do |content_part|
                                 json.object do
