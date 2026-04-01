@@ -1,4 +1,5 @@
 require "./reasoning"
+require "./image_config"
 
 module OpenRouter
 
@@ -40,6 +41,13 @@ module OpenRouter
 
         # Reasoning configuration for models that support reasoning tokens
         property reasoning : Reasoning?
+
+        # Output modalities, e.g. ["text"], ["image"], or ["image", "text"]
+        # Required for image generation models
+        property modalities : Array(String)?
+
+        # Image generation configuration (aspect ratio, size)
+        property image_config : ImageConfig?
 
         #### Advanced optional parameters #####
         
@@ -190,6 +198,9 @@ module OpenRouter
                 if @reasoning
                     json.field "reasoning", @reasoning
                 end
+
+                json.field "modalities", @modalities if @modalities
+                json.field "image_config", @image_config if @image_config
 
                 if @respond_with_json
                     json.field "response_format" do

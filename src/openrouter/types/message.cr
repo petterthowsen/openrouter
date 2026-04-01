@@ -35,8 +35,12 @@ module OpenRouter
         # Reasoning details for preserving reasoning blocks (used in tool calling)
         property reasoning_details : JSON::Any?
 
+        # Generated images returned by image generation models.
+        # Each entry is an object, typically `{"url": "data:image/png;base64,..."}`.
+        property images : Array(JSON::Any)?
+
         # Initialize for user/assistant/system messages
-        def initialize(role : Role, content : Content?, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil, reasoning : String? = nil, reasoning_details : JSON::Any? = nil)
+        def initialize(role : Role, content : Content?, name : String? = nil, tool_call_id : String? = nil, tool_calls : Array(ToolCall)? = nil, reasoning : String? = nil, reasoning_details : JSON::Any? = nil, images : Array(JSON::Any)? = nil)
             @role = role
             @content = content
             @name = name
@@ -44,6 +48,7 @@ module OpenRouter
             @tool_calls = tool_calls
             @reasoning = reasoning
             @reasoning_details = reasoning_details
+            @images = images
 
             if role == Role::Tool && tool_call_id == nil
                 raise "Tool messages must have a tool_call_id"
@@ -114,9 +119,38 @@ module OpenRouter
             add_tool_call(tool_call)
         end
 
+        # Returns image URLs from the message — either from a separate `images`
+        # field (some models) or from `image_url` content parts (others).
+        def image_urls : Array(String)
+            urls = [] of String
+
+            if @images
+                @images.not_nil!.each do |img|
+                    url = img["url"]?.try(&.as_s) ||
+                          img["image_url"]?.try(&.["url"]?).try(&.as_s)
+                    urls << url if url
+                end
+            end
+
+            if @content.is_a?(Array(ContentPart))
+                @content.as(Array(ContentPart)).each do |part|
+                    urls << part[:value] if part[:type] == "image_url"
+                end
+            end
+
+            urls
+        end
+
         # Check if content is an Array
         def multi_modal? : Bool
             @content.is_a?(Array(ContentPart))
+        end
+
+        # Override JSON::Serializable's generated self.new(pull) so that response
+        # deserialization routes through our custom from_json(JSON::Any), which
+        # correctly handles the nested image_url/video_url format from the API.
+        def self.new(pull : JSON::PullParser)
+            from_json(JSON.parse(pull.read_raw))
         end
 
         def self.from_json(json : JSON::Any)
@@ -148,12 +182,10 @@ module OpenRouter
                     # it's an array of objects
                     content = json["content"].as_a.map do |content_part_json|
                         type = content_part_json["type"].as_s
-                        # if type is image_url, we look for image_url and use that as content
-                        if type == "image_url"
-                            type = "image_url"
-                            value = content_part_json["image_url"].as_s
+                        if type == "image_url" || type == "video_url"
+                            value = content_part_json[type]["url"].as_s
                         else
-                            value = "unknown"
+                            value = content_part_json[type]?.try(&.as_s) || "unknown"
                         end
                         {
                             type: type,
@@ -186,7 +218,7 @@ module OpenRouter
             #   ]
             
             if json.as_h.has_key? "tool_calls"
-                tool_calls = json["tool_calls"].as_a.map { |tool_call_json| ToolCall.new(tool_call_json) }
+                tool_calls = json["tool_calls"].as_a.map { |tool_call_json| ToolCall.from_json(tool_call_json.to_json) }
             end
 
             # tool_call_id
@@ -202,7 +234,10 @@ module OpenRouter
             # reasoning_details
             reasoning_details = json.as_h.has_key?("reasoning_details") ? json["reasoning_details"] : nil
 
-            Message.new(role, content, name, tool_call_id, tool_calls: tool_calls, reasoning: reasoning, reasoning_details: reasoning_details)
+            # images (returned by image generation models)
+            images = json.as_h.has_key?("images") ? json["images"].as_a : nil
+
+            Message.new(role, content, name, tool_call_id, tool_calls: tool_calls, reasoning: reasoning, reasoning_details: reasoning_details, images: images)
         end
 
         # Custom serialization for complex multi-modal content and tool calls
@@ -223,9 +258,9 @@ module OpenRouter
                                     type = content_part[:type]
                                     value = content_part[:value]
 
-                                    if type == "image_url"
+                                    if type == "image_url" || type == "video_url"
                                         json.field("type", type)
-                                        json.field "image_url" do
+                                        json.field type do
                                             json.object do
                                                 json.field("url", value)
                                             end
@@ -272,6 +307,11 @@ module OpenRouter
                     # Include reasoning_details if present
                     if @reasoning_details
                         json.field("reasoning_details", @reasoning_details)
+                    end
+
+                    # Include images if present
+                    if @images
+                        json.field("images", @images)
                     end
                 end
             end
