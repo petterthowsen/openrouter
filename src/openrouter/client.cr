@@ -64,6 +64,17 @@ module OpenRouter
       Response.from_request(request, response_json)
     end
 
+    # Send an embedding request for a single string or array of strings using the specified model
+    def embed(input : String | Array(String), model : String) : EmbeddingResponse
+        embed(EmbeddingRequest.new(input: input, model: model))
+    end
+
+    # Send an embedding request using the specified EmbeddingRequest object
+    def embed(request : EmbeddingRequest) : EmbeddingResponse
+        response_json = post("/embeddings", request.to_json)
+        EmbeddingResponse.from_json(response_json.to_json)
+    end
+
     # Get a specific endpoint
     # 
     # This is a low-level method that is available for edge cases.
