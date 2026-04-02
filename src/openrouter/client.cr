@@ -65,8 +65,8 @@ module OpenRouter
     end
 
     # Send an embedding request for a single string or array of strings using the specified model
-    def embed(input : String | Array(String), model : String) : EmbeddingResponse
-        embed(EmbeddingRequest.new(input: input, model: model))
+    def embed(input : String | Array(String), model : String, dimensions : Int32? = nil, user : String? = nil, encoding_format : EmbeddingEncodingFormat? = nil) : EmbeddingResponse
+        embed(EmbeddingRequest.new(input: input, model: model, dimensions: dimensions, user: user, encoding_format: encoding_format))
     end
 
     # Send an embedding request using the specified EmbeddingRequest object
@@ -169,7 +169,7 @@ module OpenRouter
     private def handle_api_error(error_obj : Hash(String, JSON::Any)) : JSON::Any
       code = error_obj["code"].as_i
       message = error_obj["message"].as_s || "Unknown API error"
-      metadata = error_obj["metadata"]
+      metadata = error_obj["metadata"]?
 
       error_message = "API Error #{code}: #{message}"
       error_message += " | Metadata: #{metadata}" if metadata

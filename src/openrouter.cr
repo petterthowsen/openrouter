@@ -11,5 +11,5 @@ require "./openrouter/types/embedding_response"
 
 # Provides an HTTP Client for the OpenRouter API (https://openrouter.ai)
 module OpenRouter
-  VERSION = "1.2.0"
+  VERSION = "1.2.1"
 end
