@@ -167,8 +167,8 @@ module OpenRouter
     end
 
     private def handle_api_error(error_obj : Hash(String, JSON::Any)) : JSON::Any
-      code = error_obj["code"].as_i
-      message = error_obj["message"].as_s || "Unknown API error"
+      code = error_obj["code"]?.try(&.as_i?)
+      message = error_obj["message"]?.try(&.as_s?) || "Unknown API error (raw: #{error_obj})"
       metadata = error_obj["metadata"]?
 
       error_message = "API Error #{code}: #{message}"

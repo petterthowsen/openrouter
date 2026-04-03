@@ -116,6 +116,16 @@ describe OpenRouter::Client do
         response.data[1].index.should eq(1)
     end
 
+    it "raises an error for unsupported dimensions", focus: true do
+        client = OpenRouter::Client.new(API_KEY)
+
+        # qwen3-embedding-8b accepts dimensions: 2 without error (silently clips or ignores)
+        # so we use an invalid model to verify the error path works
+        expect_raises(OpenRouter::Error) do
+            client.embed("test input", "not-a-real/model")
+        end
+    end
+
     it "sends an EmbeddingRequest object directly", focus: true do
         client = OpenRouter::Client.new(API_KEY)
 
