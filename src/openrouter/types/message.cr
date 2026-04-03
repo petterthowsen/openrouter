@@ -200,7 +200,7 @@ module OpenRouter
             end
 
             if json.as_h.has_key? "name"
-                name = json["name"].as_s
+                name = json["name"].as_s?
             else
                 name = nil
             end
