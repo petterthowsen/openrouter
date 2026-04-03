@@ -34,6 +34,19 @@ module OpenRouter
             end
         end
 
+        def to_json(json : JSON::Builder)
+            json.object do
+                json.field "object", @object
+                json.field "index", @index
+                json.field "embedding" do
+                    case e = @raw_embedding
+                    in Array(Float64) then e.to_json(json)
+                    in String         then json.string e
+                    end
+                end
+            end
+        end
+
         def self.new(pull : JSON::PullParser)
             object = ""
             index = 0
